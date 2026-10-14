@@ -7,3 +7,9 @@
 [submodule "third_party/LibAtrac9"]
 	path = third_party/LibAtrac9
 	url = https://github.com/Thealexbarney/LibAtrac9.git
+[submodule "gpu/third_party/xbyak"]
+	path = gpu/third_party/xbyak
+	url = https://github.com/herumi/xbyak.git
+[submodule "gpu/third_party/miniz"]
+	path = gpu/third_party/miniz
+	url = https://github.com/richgel999/miniz.git
