@@ -33,6 +33,20 @@ This repository adapts the original Linux codebase specifically for Windows syst
 
 ---
 
+## Windows Build Fixes (this fork)
+
+The original repository did not compile on Windows out of the box. Three independent build failures blocked any attempt. This fork resolves all three and documents the full process.
+
+| Fix | What was broken | What was done |
+|---|---|---|
+| **miniz** | `CMakeLists.txt` used `find_path` looking for miniz at `C:/msys64/mingw64` — no MSYS2 package installs it there. CMake silently resolved `MINIZ_INC=NOTFOUND` and linking failed. | Replaced the broken lookup with `add_subdirectory` over the upstream source ([richgel999/miniz](https://github.com/richgel999/miniz)), registered as a submodule. No system package required. |
+| **xbyak** | The embedded shadPS4 shader recompiler uses xbyak for runtime x86-64 code generation. The original repo had **no xbyak reference anywhere** — no submodule, no CMake entry, nothing. Any build attempt ended with `fatal error: xbyak/xbyak.h: No such file or directory`. | Added [herumi/xbyak](https://github.com/herumi/xbyak) v7.43 as a submodule and wired it into `gpu/CMakeLists.txt`. |
+| **LTO** | With link-time optimization enabled globally, GCC's LTO pass discarded functions called only from inline assembly strings (`call pre_import_hook`, `call restore_guest_fs`). The linker failed with `undefined reference` errors at the very last step — after everything else compiled successfully. | Identified the interaction between `__attribute__((sysv_abi))` + `asm volatile` and LTO on Windows/MinGW. Disabled LTO selectively on the `bbport` target with `set_property(TARGET bbport PROPERTY INTERPROCEDURAL_OPTIMIZATION FALSE)`, preserving it for `bbgpu`. |
+
+A full technical record of the build process, environment setup, all required MSYS2 packages, and a step-by-step reproduction guide is available in [`WINDOWS_BUILD_PORTING_LOG.md`](WINDOWS_BUILD_PORTING_LOG.md).
+
+---
+
 ## Technical Highlights
 
 - **Native Execution**: The game eboot is converted offline into a flat memory image; PS4 libc and libSceFios2 functions are linked directly into the binary. No CPU emulation or instruction translation occurs at run time.
