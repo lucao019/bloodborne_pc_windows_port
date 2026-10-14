@@ -104,21 +104,22 @@ else()
     pkg_check_modules(SDL3 REQUIRED IMPORTED_TARGET sdl3)
     pkg_check_modules(X11 REQUIRED IMPORTED_TARGET x11)
 endif()
-if (WIN32)
-    if (NOT TARGET miniz::miniz)
-        add_library(miniz::miniz INTERFACE IMPORTED)
-        find_path(MINIZ_INC NAMES miniz.h PATHS "$ENV{MINGW_PREFIX}/include" "C:/msys64/mingw64/include")
-        if (MINIZ_INC)
-            target_include_directories(miniz::miniz INTERFACE "${MINIZ_INC}")
-        endif()
-        find_library(MINIZ_LIB NAMES miniz libminiz.a PATHS "$ENV{MINGW_PREFIX}/lib" "C:/msys64/mingw64/lib")
-        if (MINIZ_LIB)
-            target_link_libraries(miniz::miniz INTERFACE "${MINIZ_LIB}")
-        endif()
-    endif()
-else()
-    find_package(miniz REQUIRED)
+set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(INSTALL_PROJECT OFF CACHE BOOL "" FORCE)
+
+if (NOT TARGET miniz)
+    add_subdirectory(third_party/miniz EXCLUDE_FROM_ALL)
 endif()
+
+if (NOT TARGET miniz::miniz)
+    add_library(miniz::miniz ALIAS miniz)
+endif()
+
+if (NOT TARGET xbyak::xbyak)
+    add_subdirectory(third_party/xbyak EXCLUDE_FROM_ALL)
+endif()
+
 find_package(Zydis REQUIRED)
 find_program(GLSLANG_COMPILER NAMES glslang glslangValidator PATHS "C:/msys64/mingw64/bin" REQUIRED)
 
@@ -222,7 +223,7 @@ endif()
 target_link_libraries(bbgpu PRIVATE ffx-vulkan::portable ffx-vulkan::fsr4-v07-vulkan)
 if (WIN32)
     target_link_libraries(bbgpu PUBLIC Vulkan::Headers fmt::fmt Boost::headers magic_enum::magic_enum
-        tsl::robin_map GPUOpen::VulkanMemoryAllocator PkgConfig::XXHASH PkgConfig::SDL3 PkgConfig::FFMPEG miniz::miniz Zydis::Zydis sirit ws2_32)
+    tsl::robin_map GPUOpen::VulkanMemoryAllocator PkgConfig::XXHASH PkgConfig::SDL3 PkgConfig::FFMPEG miniz::miniz Zydis::Zydis xbyak::xbyak sirit ws2_32)
 else()
     target_link_libraries(bbgpu PUBLIC Vulkan::Headers fmt::fmt Boost::headers magic_enum::magic_enum
         tsl::robin_map GPUOpen::VulkanMemoryAllocator PkgConfig::XXHASH PkgConfig::SDL3 PkgConfig::X11 PkgConfig::FFMPEG miniz::miniz Zydis::Zydis sirit)
@@ -289,7 +290,9 @@ add_executable(bbport
     ${RUNTIME_SOURCES}
     ../src/vulkan_smoke.c
 )
+set_property(TARGET bbport PROPERTY INTERPROCEDURAL_OPTIMIZATION FALSE)
 target_include_directories(bbport PRIVATE .. ../src)
+
 target_link_libraries(bbport PRIVATE bbgpu "${CMAKE_CURRENT_SOURCE_DIR}/../out/libatrac9.a" Vulkan::Vulkan)
 if (WIN32)
     target_link_libraries(bbport PRIVATE ws2_32 dbghelp ntdll winmm)
